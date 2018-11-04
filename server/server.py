@@ -20,14 +20,32 @@ class Server:
             try: 
                 message = conn.recv(2048) 
                 if message:
-                    print(username + ": " + message.decode())
-                    message_to_send =  username + ": " + message.decode().replace('\n', '')
-                    self.send_message_to_all(message_to_send, conn) 
+                    decoded_message = message.decode()                   
+                    print(username + ": " + decoded_message)
+                    if decoded_message[:2] == '-l':
+                        connected_users = self.get_connected_users(conn)
+                        self.send_connected_users(connected_users, conn)
+                    else:
+                        message_to_send =  username + ": " + message.decode().replace('\n', '')
+                        self.send_message_to_all(message_to_send, conn) 
                 else:
                     self.remove(conn) 
       
             except: 
                 continue
+
+    def get_connected_users(self, connection):
+        connected_users = []
+        for username in self.list_of_clients:
+            client = self.list_of_clients[username]
+            if client != connection:
+                connected_users.append(username)
+        return connected_users
+
+    def send_connected_users(self, connected_users, connection):
+        connected_users_message = ', '.join(connected_users)
+        connected_users_message = 'Connected users: ' + connected_users_message
+        connection.send(connected_users_message.encode())
 
     # sends message to all clients connected that are not the connection
     def send_message_to_all(self, message, connection): 
