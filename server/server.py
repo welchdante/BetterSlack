@@ -23,7 +23,6 @@ class Server:
                     decoded_message = message.decode()                   
                     print(username + ": " + decoded_message)
                     if decoded_message[:2] == '-l':
-                        print("askd")
                         connected_users = self.get_connected_users(conn)
                         self.send_connected_users(connected_users, conn)
                     else:
