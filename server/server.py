@@ -22,9 +22,23 @@ class Server:
                 if message:
                     decoded_message = message.decode()                   
                     print(username + ": " + decoded_message)
-                    if decoded_message[:2] == '-l':
+                    # command to get all other active users
+                    if decoded_message[:5] == '-list':
                         connected_users = self.get_connected_users(conn)
                         self.send_connected_users(connected_users, conn)
+
+                    # command to send to a specific client
+                    elif decoded_message[:3] == '-pm':
+                        print("send a private message")
+
+                    # administrative commands
+                    elif decoded_message[:6] == '-admin':
+                        print("Do admin stuff")
+
+                    elif decoded_message[:5] == '-help':
+                        print("help commands")
+
+                    # no command was entered
                     else:
                         message_to_send =  username + ": " + message.decode().replace('\n', '')
                         self.send_message_to_all(message_to_send, conn) 
