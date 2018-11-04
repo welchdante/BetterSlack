@@ -13,7 +13,7 @@ class Server:
 
     # creates a new client to do client things
     def client_thread(self, conn, addr, username): 
-        message = "Welcome to Better than Slack!"
+        message = "Welcome to Better than Slack! For a list of commands, enter -help."
         conn.send(message.encode()) 
         
         while True: 
@@ -22,6 +22,7 @@ class Server:
                 if message:
                     decoded_message = message.decode()                   
                     print(username + ": " + decoded_message)
+
                     # command to get all other active users
                     if decoded_message[:5] == '-list':
                         connected_users = self.get_connected_users(conn)
@@ -29,14 +30,16 @@ class Server:
 
                     # command to send to a specific client
                     elif decoded_message[:3] == '-pm':
-                        print("send a private message")
+                        self.send_private_message(decoded_message, conn)
 
                     # administrative commands
                     elif decoded_message[:6] == '-admin':
                         print("Do admin stuff")
 
+                    # user wants help 
                     elif decoded_message[:5] == '-help':
-                        print("help commands")
+                        help_commands = "Help commands:\n      -list: lists the current users\n      -pm <user to send to> <message to send>: send a private message\n      -admin <admin command>: perform administrative commands"
+                        conn.send(help_commands.encode())                        
 
                     # no command was entered
                     else:
@@ -47,6 +50,17 @@ class Server:
       
             except: 
                 continue
+
+    def send_private_message(self, message, connection):
+        split_message = message.split(' ')
+        user = split_message[1]
+        if user in self.list_of_clients:
+            client = self.list_of_clients[user]
+            message = ' '.join(split_message[2:])
+            client.send(message.encode())
+        else:
+            error_message = "That user cannot be found, please enter a user in the chat room."
+            connection.send(error_message.encode())
 
     def get_connected_users(self, connection):
         connected_users = []
