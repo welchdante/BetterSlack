@@ -17,6 +17,9 @@ class Client:
             for socks in read_sockets: 
                 if socks == self.server:
                     message = socks.recv(2048) 
+                    if message.decode() == "quit":
+                        print("Shutting Down\n")
+                        sys.exit()
                     print(message.decode())
                 else:
                     message = sys.stdin.readline().replace('\n', '') 

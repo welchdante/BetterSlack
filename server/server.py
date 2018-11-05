@@ -34,19 +34,64 @@ class Server:
 
                     # administrative commands
                     elif decoded_message[:6] == '-admin':
-                        print("Do admin stuff")
+                        
+                        # Get admin username
+                        admin_name = "Admin Username:"
+                        conn.send(admin_name.encode()) 
+                        admin_bytes = conn.recv(2048)
+                        admin_name = admin_bytes.decode()
+
+                        # Get admin password
+                        admin_pass = "Admin Password:"
+                        conn.send(admin_pass.encode())
+                        admin_bytes = conn.recv(2048)
+                        admin_pass = admin_bytes.decode() 
+
+
+                        if admin_name == "admin" and admin_pass == "admin":
+                            admin_commands = '''Admin commands:\n\t-list: lists the current users\n\t-rm <user to remove>: remove a user\n'''
+                            conn.send(admin_commands.encode()) 
+
+                            admin_action = "Which action would you like to take?"
+                            conn.send(admin_action.encode())
+
+                            admin_bytes = conn.recv(2048)
+                            admin_action = admin_bytes.decode()
+
+                            if admin_action[:3] == "-rm":
+                                user = admin_action.split()[1]
+
+                                if user in self.list_of_clients:
+                                    client = self.list_of_clients[user]
+                                    message = 'quit'
+                                    client.send(message.encode())
+                                    self.remove(conn, user)
+                                    print('User notified and removed.')
+                                else:
+                                    print("User not found.\n")
+                            else:
+                                print("Command doesn't require admin rights.\nPlease try again.\n")
+                        else:
+                            admin_commands = "Permission Denied\n"
+                            conn.send(admin_commands.encode())                    
+
+                    # quit the program
+                    elif decoded_message[:5] == '-quit':
+                        exit_command = "quit"
+                        conn.send(exit_command.encode())
+                        print("-quit recieved\nShutting down:", username)
+                        self.remove(conn, username)
 
                     # user wants help 
                     elif decoded_message[:5] == '-help':
-                        help_commands = "Help commands:\n      -list: lists the current users\n      -pm <user to send to> <message to send>: send a private message\n      -admin <admin command>: perform administrative commands"
+                        help_commands = '''Help commands:\n\t-list: lists the current users\n\t-pm <user to send to> <message to send>: send a private message\n\t-admin <admin command>: perform administrative commands\n\t-quit: kills the program and removes the connected user\n'''
                         conn.send(help_commands.encode())                        
 
-                    # no command was entered
-                    else:
+                    else: # no command was entered
                         message_to_send =  username + ": " + message.decode().replace('\n', '')
                         self.send_message_to_all(message_to_send, conn) 
                 else:
-                    self.remove(conn) 
+                    self.remove(conn, username)
       
             except: 
                 continue
@@ -66,13 +111,16 @@ class Server:
         connected_users = []
         for username in self.list_of_clients:
             client = self.list_of_clients[username]
-            if client != connection:
+            if client == connection: 
+                connected_users.append(username + " (you)")
+            else:
                 connected_users.append(username)
         return connected_users
 
     def send_connected_users(self, connected_users, connection):
         connected_users_message = ', '.join(connected_users)
         connected_users_message = 'Connected users: ' + connected_users_message
+        print(connected_users_message)
         connection.send(connected_users_message.encode())
 
     # sends message to all clients connected that are not the connection
