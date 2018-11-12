@@ -3,6 +3,13 @@ import select
 import sys 
 from _thread import *
 
+import rsa_encrypt as rsa
+
+'''
+decrypted_message = rsa.decrypt_symmetric_key(self.priv, message)
+encrypted_message = encrypt_message(message, recipient, symmetric_key_list)
+'''
+
 class Server:
     def __init__(self, ip, port):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -10,6 +17,9 @@ class Server:
         self.server.bind((ip, port))
         self.server.listen(100)   
         self.list_of_clients = {} 
+        self.symmetric_key_list = {}
+
+        self.priv, self.pub = rsa.generate_keys()
 
     # creates a new client to do client things
     def client_thread(self, conn, addr, username): 
@@ -18,7 +28,7 @@ class Server:
         
         while True: 
             try: 
-                message = conn.recv(2048) 
+                message = rsa.decrypt_symmetric_key(self.priv, conn.recv(2048)) 
                 if message:
                     decoded_message = message.decode()                   
                     print(username + ": " + decoded_message)
@@ -38,13 +48,13 @@ class Server:
                         # Get admin username
                         admin_name = "Admin Username:"
                         conn.send(admin_name.encode()) 
-                        admin_bytes = conn.recv(2048)
+                        admin_bytes = rsa.decrypt_symmetric_key(self.priv, conn.recv(2048))
                         admin_name = admin_bytes.decode()
 
                         # Get admin password
                         admin_pass = "Admin Password:"
                         conn.send(admin_pass.encode())
-                        admin_bytes = conn.recv(2048)
+                        admin_bytes = rsa.decrypt_symmetric_key(self.priv, conn.recv(2048))
                         admin_pass = admin_bytes.decode() 
 
 
@@ -55,7 +65,7 @@ class Server:
                             admin_action = "Which action would you like to take?"
                             conn.send(admin_action.encode())
 
-                            admin_bytes = conn.recv(2048)
+                            admin_bytes = rsa.decrypt_symmetric_key(self.priv, conn.recv(2048))
                             admin_action = admin_bytes.decode()
 
                             if admin_action[:3] == "-rm":
@@ -102,7 +112,7 @@ class Server:
         if user in self.list_of_clients:
             client = self.list_of_clients[user]
             message = ' '.join(split_message[2:])
-            client.send(message.encode())
+            client.send(rsa.encrypt_message(message.encode(), username, symmetric_key_list, 's'))
         else:
             error_message = "That user cannot be found, please enter a user in the chat room."
             connection.send(error_message.encode())
@@ -143,15 +153,18 @@ class Server:
     def serve(self): 
         while True:
             conn, addr = self.server.accept()
+            fernet_key = conn.recv(2048).decode()
+
+
             username_prompt = "What is your username?"
             conn.send(username_prompt.encode())
             valid_username = False
             while not valid_username:
-                username_bytes = conn.recv(2048)
-                username = username_bytes.decode()
-
+                username_bytes = rsa.decrypt_symmetric_key(self.priv, conn.recv(2048))
+                username = username_bytes.decode() # TODO May need to move decode into the decrypt function
                 if username not in self.list_of_clients:
                     valid_username = True
+	                self.symmetric_key_list[username] = fernet_key # New
                     self.list_of_clients[username] = conn
                 else:
                     already_exists = "User already exists, please enter a new username." 
