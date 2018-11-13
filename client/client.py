@@ -38,8 +38,10 @@ class Client:
             for socks in read_sockets: 
                 if socks == self.server:
                     message = socks.recv(2048) 
-                    if counter > 2:
+                    try:
                         message = self.fernet.decrypt(message) # Breaks here... :(
+                    except Exception as e:
+                        pass
                     if message.decode() == "quit":
                         print("Shutting Down\n")
                         sys.exit()

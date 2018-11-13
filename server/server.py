@@ -31,10 +31,10 @@ class Server:
         while True: 
             try: 
                 message = conn.recv(2048)
-                message = self.list_of_clients[username][1].decrypt(message.decode())
+                message = self.list_of_clients[username][1].decrypt(message)
  
                 if message:
-                    decoded_message = message                  
+                    decoded_message = message.decode() 
                     print(username + ": " + decoded_message)
 
                     # command to get all other active users
@@ -54,16 +54,16 @@ class Server:
                         admin_name = self.list_of_clients[username][1].encrypt(admin_name.encode())
                         conn.send(admin_name) 
                         admin_bytes = conn.recv(2048)
-                        message = self.list_of_clients[username][1].decrypt(admin_bytes.decode())
-                        admin_name = message
+                        message = self.list_of_clients[username][1].decrypt(admin_bytes)
+                        admin_name = message.decode()
 
                         # Get admin password
                         admin_pass = "Admin Password:"
                         admin_pass = self.list_of_clients[username][1].encrypt(admin_pass.encode())
                         conn.send(admin_pass)
                         admin_bytes = conn.recv(2048)
-                        message = self.list_of_clients[username][1].decrypt(admin_bytes.decode())
-                        admin_pass = message
+                        message = self.list_of_clients[username][1].decrypt(admin_bytes)
+                        admin_pass = message.decode()
 
                         if admin_name == "admin" and admin_pass == "admin":
                             admin_commands = '''Admin commands:\n\t-list: lists the current users\n\t-rm <user to remove>: remove a user\n'''
@@ -75,8 +75,8 @@ class Server:
                             conn.send(admin_action.encode())
 
                             admin_bytes = conn.recv(2048)
-                            message = self.list_of_clients[username][1].decrypt(admin_bytes.decode())
-                            admin_action = message
+                            message = self.list_of_clients[username][1].decrypt(admin_bytes)
+                            admin_action = message.decode()
 
                             if admin_action[:3] == "-rm":
                                 user = admin_action.split()[1]
@@ -182,6 +182,7 @@ class Server:
             valid_username = False
             while not valid_username:
                 username_bytes = conn.recv(2048)
+                username_bytes = fernet.decrypt(username_bytes)
                 username = username_bytes.decode()
 
                 if username not in self.list_of_clients:
