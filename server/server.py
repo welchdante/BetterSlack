@@ -2,6 +2,11 @@ import socket
 import select 
 import sys 
 from _thread import *
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
 
 class Server:
     def __init__(self, ip, port):
@@ -10,6 +15,13 @@ class Server:
         self.server.bind((ip, port))
         self.server.listen(100)   
         self.list_of_clients = {} 
+        with open("../RSApriv.pem",mode="rb") as file:
+            self.raw_priv = file.read()
+        self.private_key = serialization.load_pem_private_key(
+            self.raw_priv,
+            password=None,
+            backend=default_backend()
+        )
 
     # creates a new client to do client things
     def client_thread(self, conn, addr, username): 
@@ -143,6 +155,12 @@ class Server:
     def serve(self): 
         while True:
             conn, addr = self.server.accept()
+            
+            raw_in = conn.recv(2048)
+            self.sym_key = self.decrypt_string(raw_in)
+            fernet = Fernet(self.sym_key.decode())
+            print(self.sym_key)
+
             username_prompt = "What is your username?"
             conn.send(username_prompt.encode())
             valid_username = False
@@ -165,6 +183,15 @@ class Server:
         conn.close() 
         self.server.close() 
 
+    def decrypt_string(self, data):
+        decrypted_string = self.private_key.decrypt(
+            data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                algorithm=hashes.SHA1(),
+                label=None
+        ))
+        return decrypted_string
 
 if len(sys.argv) != 3:
     exit() 
