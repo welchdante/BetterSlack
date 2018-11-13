@@ -38,8 +38,8 @@ class Client:
                     print(message.decode())
                 else:
                     message = sys.stdin.readline().replace('\n', '') 
-                    encrypted_message = rsa.encrypt_message(message, None, None, self.encrypted_public_key)
-                    self.server.send(encrypted_message.encode()) 
+                    encrypted_message = rsa.encrypt_message(message.encode(), None, None, self.fernet_key)
+                    self.server.send(encrypted_message) 
         server.close() 
 
 if len(sys.argv) != 3: 

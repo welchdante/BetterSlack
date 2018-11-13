@@ -69,7 +69,7 @@ def decrypt_symmetric_key(private_key, data):
 
 # Server - Used...
 def encrypt_message(message, recipient, symmetric_key_list, fernet_key = None):
-    if fernet_key is None:
+    if fernet_key == None:
         # Encrypt message to be sent to specified recipient
         fernet_key = symmetric_key_list.get(recipient)
         f = Fernet(fernet_key)
