@@ -159,6 +159,10 @@ class Server:
         while True:
             conn, addr = self.server.accept()
             encrypted_public_key = conn.recv(2048)
+            encrypted_public_key = rsa.read_private_key()
+
+            # Possibly need to decode here??
+
             username_prompt = "What is your username?"
             conn.send(username_prompt.encode())
 

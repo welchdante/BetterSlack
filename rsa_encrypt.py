@@ -46,7 +46,10 @@ def generate_keys():
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
     pub.splitlines()[0]
+    file = open("public_key.pem", "wb")
     print(priv)
+    file.write(priv)
+    file.close()
     print()
     file = open("public_key.pem", "wb")
     print(pub)
@@ -93,6 +96,19 @@ def read_public_key():
     file.close()
     public_key = load_pem_public_key(public_key_data, backend=default_backend())
     return public_key
+
+# Serve
+def read_private_key():
+    # Read public key from file and convert it to public_key type
+    file = open("private_key.pem", "rb")
+    private_key_data = file.read()
+    file.close()
+
+    #create the private key object
+    private_key = serialization.load_pem_private_key(private_key_data, password=None, backend=default_backend())
+    return private_key
+
+
 
 # Client
 def gen_symmetric_key(public_key, fernet_key):
