@@ -28,9 +28,8 @@ class Client:
             )
         )
         self.server.send(self.encrypted_symmetric_key)
-        print(self.sym_key)
+        # print(self.sym_key)
 
-        counter = 0
         while True: 
             input_streams = [sys.stdin, self.server] 
             read_sockets, write_socket, error_socket = select.select(input_streams,[],[]) 
