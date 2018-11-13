@@ -19,14 +19,18 @@ class Client:
 
     # listen for both user input to send out and data from server 
     def listen(self):
-
+        count = 0
         while True: 
             input_streams = [sys.stdin, self.server] 
             read_sockets, write_socket, error_socket = select.select(input_streams,[],[]) 
 
             for socks in read_sockets: 
                 if socks == self.server:
-                    message = rsa.decrypt_message(socks.recv(2048), self.fernet_key)
+                    if count < 3: 
+                        message = socks.recv(2048)
+                        count += 1
+                    else:
+                        message = rsa.decrypt_message(socks.recv(2048), self.fernet_key)
                     # message = socks.recv(2048) 
                     if message.decode() == "quit":
                         print("Shutting Down\n")
@@ -34,7 +38,7 @@ class Client:
                     print(message.decode())
                 else:
                     message = sys.stdin.readline().replace('\n', '') 
-                    encrypted_message = encrypt_message(message, None, None, self.encrypted_public_key)
+                    encrypted_message = rsa.encrypt_message(message, None, None, self.encrypted_public_key)
                     self.server.send(encrypted_message.encode()) 
         server.close() 
 

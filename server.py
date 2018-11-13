@@ -158,7 +158,7 @@ class Server:
     def serve(self): 
         while True:
             conn, addr = self.server.accept()
-            encrypted_public_key = conn.recv(2048).decode()
+            encrypted_public_key = conn.recv(2048)
             username_prompt = "What is your username?"
             conn.send(username_prompt.encode())
 
