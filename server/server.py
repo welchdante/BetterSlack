@@ -30,9 +30,11 @@ class Server:
         
         while True: 
             try: 
-                message = conn.recv(2048) 
+                message = conn.recv(2048)
+                message = self.list_of_clients[username][1].decrypt(message.decode())
+ 
                 if message:
-                    decoded_message = message.decode()                   
+                    decoded_message = message                  
                     print(username + ": " + decoded_message)
 
                     # command to get all other active users
@@ -49,34 +51,41 @@ class Server:
                         
                         # Get admin username
                         admin_name = "Admin Username:"
-                        conn.send(admin_name.encode()) 
+                        admin_name = self.list_of_clients[username][1].encrypt(admin_name.encode())
+                        conn.send(admin_name) 
                         admin_bytes = conn.recv(2048)
-                        admin_name = admin_bytes.decode()
+                        message = self.list_of_clients[username][1].decrypt(admin_bytes.decode())
+                        admin_name = message
 
                         # Get admin password
                         admin_pass = "Admin Password:"
-                        conn.send(admin_pass.encode())
+                        admin_pass = self.list_of_clients[username][1].encrypt(admin_pass.encode())
+                        conn.send(admin_pass)
                         admin_bytes = conn.recv(2048)
-                        admin_pass = admin_bytes.decode() 
-
+                        message = self.list_of_clients[username][1].decrypt(admin_bytes.decode())
+                        admin_pass = message
 
                         if admin_name == "admin" and admin_pass == "admin":
                             admin_commands = '''Admin commands:\n\t-list: lists the current users\n\t-rm <user to remove>: remove a user\n'''
+                            admin_commands = self.list_of_clients[username][1].encrypt(admin_commands.encode())
                             conn.send(admin_commands.encode()) 
 
                             admin_action = "Which action would you like to take?"
+                            admin_action = self.list_of_clients[username][1].encrypt(admin_action.encode())
                             conn.send(admin_action.encode())
 
                             admin_bytes = conn.recv(2048)
-                            admin_action = admin_bytes.decode()
+                            message = self.list_of_clients[username][1].decrypt(admin_bytes.decode())
+                            admin_action = message
 
                             if admin_action[:3] == "-rm":
                                 user = admin_action.split()[1]
 
                                 if user in self.list_of_clients:
-                                    client = self.list_of_clients[user]
+                                    client = self.list_of_clients[user][0]
                                     message = 'quit'
-                                    client.send(message.encode())
+                                    message = self.list_of_clients[username][1].encrypt(message.encode())
+                                    client.send(message)
                                     self.remove(conn, user)
                                     print('User notified and removed.')
                                 else:
@@ -85,18 +94,21 @@ class Server:
                                 print("Command doesn't require admin rights.\nPlease try again.\n")
                         else:
                             admin_commands = "Permission Denied\n"
-                            conn.send(admin_commands.encode())                    
+                            admin_commands = self.list_of_clients[username][1].encrypt(admin_commands.encode())
+                            conn.send(admin_commands)                    
 
                     # quit the program
                     elif decoded_message[:5] == '-quit':
                         exit_command = "quit"
-                        conn.send(exit_command.encode())
+                        exit_command = self.list_of_clients[username][1].encrypt(exit_command.encode())
+                        conn.send(exit_command)
                         print("-quit recieved\nShutting down:", username)
                         self.remove(conn, username)
 
                     # user wants help 
                     elif decoded_message[:5] == '-help':
                         help_commands = '''Help commands:\n\t-list: lists the current users\n\t-pm <user to send to> <message to send>: send a private message\n\t-admin <admin command>: perform administrative commands\n\t-quit: kills the program and removes the connected user\n'''
+                        help_commands = self.list_of_clients[username][1].encrypt(help_commands.encode())
                         conn.send(help_commands.encode())                        
 
                     else: # no command was entered
@@ -112,17 +124,18 @@ class Server:
         split_message = message.split(' ')
         user = split_message[1]
         if user in self.list_of_clients:
-            client = self.list_of_clients[user]
+            client = self.list_of_clients[user][0]
             message = ' '.join(split_message[2:])
-            client.send(message.encode())
+            message = self.list_of_clients[username][1].encrypt(messsage.encode())
+            client.send(message)
         else:
             error_message = "That user cannot be found, please enter a user in the chat room."
-            connection.send(error_message.encode())
+            connection.send(error_message.encode()) # Can't encrypt as no user.
 
     def get_connected_users(self, connection):
         connected_users = []
         for username in self.list_of_clients:
-            client = self.list_of_clients[username]
+            client = self.list_of_clients[username][0]
             if client == connection: 
                 connected_users.append(username + " (you)")
             else:
@@ -133,15 +146,17 @@ class Server:
         connected_users_message = ', '.join(connected_users)
         connected_users_message = 'Connected users: ' + connected_users_message
         print(connected_users_message)
+        connected_users_message = self.list_of_clients[username][1].encrypt(connected_users_message.encode())
         connection.send(connected_users_message.encode())
 
     # sends message to all clients connected that are not the connection
     def send_message_to_all(self, message, connection): 
         for username in self.list_of_clients: 
-            client = self.list_of_clients[username]
+            client = self.list_of_clients[username][0]
             if client != connection: 
                 try:
-                    client.send(message.encode()) 
+                    message = self.list_of_clients[username][1].encrypt(message.encode())
+                    client.send(message) 
                 except: 
                     client.close()
                     self.remove(client, username) 
@@ -162,7 +177,8 @@ class Server:
             print(self.sym_key)
 
             username_prompt = "What is your username?"
-            conn.send(username_prompt.encode())
+            username_prompt = fernet.encrypt(username_prompt.encode())
+            conn.send(username_prompt)
             valid_username = False
             while not valid_username:
                 username_bytes = conn.recv(2048)
@@ -170,14 +186,16 @@ class Server:
 
                 if username not in self.list_of_clients:
                     valid_username = True
-                    self.list_of_clients[username] = conn
+                    self.list_of_clients[username] = (conn, fernet)
                 else:
                     already_exists = "User already exists, please enter a new username." 
-                    conn.send(already_exists.encode())
+                    already_exists = fernet.encrypt(already_exists.encode())
+                    conn.send(already_exists)
             
             connected_message = username + " connected"
             print(connected_message)
-            conn.send(connected_message.encode())
+            connected_message = self.list_of_clients[username][1].encrypt(connected_message.encode())
+            conn.send(connected_message)
             start_new_thread(self.client_thread,(conn, addr, username))  
          
         conn.close() 

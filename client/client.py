@@ -30,6 +30,7 @@ class Client:
         self.server.send(self.encrypted_symmetric_key)
         print(self.sym_key)
 
+        counter = 0
         while True: 
             input_streams = [sys.stdin, self.server] 
             read_sockets, write_socket, error_socket = select.select(input_streams,[],[]) 
@@ -37,13 +38,16 @@ class Client:
             for socks in read_sockets: 
                 if socks == self.server:
                     message = socks.recv(2048) 
+                    if counter > 2:
+                        message = self.fernet.decrypt(message) # Breaks here... :(
                     if message.decode() == "quit":
                         print("Shutting Down\n")
                         sys.exit()
                     print(message.decode())
                 else:
                     message = sys.stdin.readline().replace('\n', '') 
-                    self.server.send(message.encode()) 
+                    val = self.fernet.encrypt(message.encode())
+                    self.server.send(val) 
         server.close() 
 
 if len(sys.argv) != 3: 
