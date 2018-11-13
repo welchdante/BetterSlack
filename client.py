@@ -10,11 +10,11 @@ class Client:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
         self.server.connect((ip, port))
 
-		self.public_key = read_public_key()
-		self.fernet_key = rsa.get_fernet_key()
+        self.public_key = rsa.read_public_key()
+        self.fernet_key = rsa.get_fernet_key()
 
-		self.encrypted_public_key = gen_symmetric_key(public_key, fernet_key)
-		self.server.send(fernet_key.encode()) # Send fernet immediately
+        self.encrypted_public_key = rsa.gen_symmetric_key(self.public_key, self.fernet_key)
+        self.server.send(self.encrypted_public_key) # Send encrypted_public_key immediately
 
 
     # listen for both user input to send out and data from server 
@@ -26,7 +26,7 @@ class Client:
 
             for socks in read_sockets: 
                 if socks == self.server:
-					message = rsa.decrypt_message(socks.recv(2048), fernet_key)
+                    message = rsa.decrypt_message(socks.recv(2048), self.fernet_key)
                     # message = socks.recv(2048) 
                     if message.decode() == "quit":
                         print("Shutting Down\n")
@@ -34,7 +34,7 @@ class Client:
                     print(message.decode())
                 else:
                     message = sys.stdin.readline().replace('\n', '') 
-                    encrypted_message = encrypt_message(message, fernet_key)
+                    encrypted_message = encrypt_message(message, None, None, self.encrypted_public_key)
                     self.server.send(encrypted_message.encode()) 
         server.close() 
 

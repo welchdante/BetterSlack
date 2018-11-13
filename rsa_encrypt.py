@@ -1,6 +1,7 @@
 import select
 import socket
 import sys
+import os
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -9,10 +10,12 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
 
 
 '''
-DONE Randomly generate symmetric key	
+DONE Randomly generate symmetric key    
 Encrypt symmetric key with RSA pub key
 Decrypt symmetric key with RSA private key
 Encrypting all chat messages with symmetric key
@@ -45,7 +48,7 @@ def generate_keys():
     pub.splitlines()[0]
     print(priv)
     print()
-    file = open("public_key.pem", "w+")
+    file = open("public_key.pem", "wb")
     print(pub)
     file.write(pub)
     file.close()
@@ -64,36 +67,35 @@ def decrypt_symmetric_key(private_key, data):
     )
     return message
 
-# Server - 
-def encrypt_message(message, fernet_key = None, recipient, symmetric_key_list):
-
-	if fernet_key == None:
-	    # Encrypt message to be sent to specified recipient
-	    fernet_key = symmetric_key_list.get(recipient)
-	    f = Fernet(fernet_key)
-	else:
-		f = Fernet(fernet_key)
+# Server - Used...
+def encrypt_message(message, recipient, symmetric_key_list, fernet_key = None):
+    if fernet_key is None:
+        # Encrypt message to be sent to specified recipient
+        fernet_key = symmetric_key_list.get(recipient)
+        f = Fernet(fernet_key)
+    else:
+        f = Fernet(fernet_key)
     encrypted_message = f.encrypt(message)
     return encrypted_message
 
-# Client - Used...
+# Client
 def decrypt_message(data, fernet_key):
     # Decrypt message sent from server 
     f = Fernet(fernet_key)
     message = f.decrypt(data)
     return message
 
-# Client - Used...
-def read_public_key()
+# Client
+def read_public_key():
     # Read public key from file and convert it to public_key type
-    file = open("public_key.pem", "r")
+    file = open("public_key.pem", "rb")
     public_key_data = file.read()
     file.close()
     public_key = load_pem_public_key(public_key_data, backend=default_backend())
     return public_key
 
-# Client - Used...
-def gen_symmetric_key(public_key, fernet_key)
+# Client
+def gen_symmetric_key(public_key, fernet_key):
     # Generate symmetric key
     f = Fernet(fernet_key)
     salt = os.urandom(16)
@@ -105,13 +107,12 @@ def gen_symmetric_key(public_key, fernet_key)
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None,
-            salt=salt
         )
     )
     return encrypted_public_key
 
-# Client - Used...
+# Client
 def get_fernet_key():
-	return Fernet.generate_key()
+    return Fernet.generate_key()
 
 
